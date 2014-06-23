@@ -1,0 +1,50 @@
+body {
+  font: 11px sans-serif;
+  color: red;
+}
+
+#vis {
+  width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.axis path,
+.axis line {
+  fill:   none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.line {
+  fill: none;
+}
+.avg {
+  stroke: red;
+  stroke-width: 2px;
+}
+
+.avg-val {
+  font-size: 10px;
+  font-weight: bold;
+  color: red;
+}
+
+.mvavg {
+  stroke-width: 2px;
+  stroke-dasharray: 4,2;
+  stroke: black;
+}
+.bar {
+  /* fill is random */
+  stroke: white;
+}
+
+div.small-multiple {
+  display: inline-block;
+  background-color: #EEE;
+  margin: 10px;
+}
+
+.name-label {
+}
