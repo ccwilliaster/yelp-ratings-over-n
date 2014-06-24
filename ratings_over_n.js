@@ -20,11 +20,14 @@ function cumAvg(sortedObjs, accessor) {
 }
 
 // Small multiple parameters 
+var smNCutoff = 150; // set to null if the x domain should be set for each
 var margin = { top: 20, right: 40, bottom: 20, left: 30 },
     width  = 220 - margin.left - margin.right,
     height = 150 - margin.top  - margin.bottom;
 
 var x = d3.scale.linear() // domain is small-multiple-specific
+  .clamp(true)
+  .domain([0, 300])
   .range([0, width]);
 
 var y = d3.scale.linear() // yelp = 1-5 stars, always)
@@ -49,6 +52,7 @@ var metaM = { top: 20, right: 50, bottom: 50, left: 50 },
     metaH = 250 - metaM.top  - metaM.bottom;
 
 var xMeta = d3.scale.linear()
+  .domain([0,metaNCutoff])
   .range([0,metaW]);
 
 var yMeta = d3.scale.linear()
@@ -76,13 +80,116 @@ var line = d3.svg.line()
   .x(function(d,i) { return x(i) + margin.left; })
   .y(function(d,i) { return y(d) + margin.top; });
 
-// Small mulitple chart (re-usable), creates single chart
-function smallMultiple(d, i) {
+var metaLine = d3.svg.line()
+  .x(function(d,i) { return xMeta(i) + metaM.left; })
+  .y(function(d,i) { return yMeta(d) + metaM.top; })
+
+d3.json(jsonFile, function(data) { // load data asynchronously then make chart
+  d3.select("div#loading").remove(); 
+ 
+  var metaSVG = d3.select("#vis").append("div") // meta is made after individuals
+    .attr("class", "meta")
+   .append("svg")
+    .attr("width",  metaW + metaM.left + metaM.right)
+    .attr("height", metaH + metaM.top  + metaM.bottom)
+    .attr("transform", "translate(" + metaM.left + "," + metaM.top + ")");
+
+  // split data by business
+  var businesses = d3.nest()
+    .key(function(d) { return d.name; })
+    .entries(data)
+
+  // each business gets its own small multiple
+  var divs = d3.select("#vis").append("div")
+    .attr("class", "small-multiple-container")
+    .selectAll(".small-multiple")
+    .data(businesses)
+   .enter().append("div")
+    .attr("class", "small-multiple")
+
+  var svgs = divs.append("svg")
+    .attr("width",  width + margin.left + margin.right)
+    .attr("height", height + margin.top  + margin.bottom)
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  svgs.each(smallMultiple);
+     
+  svgs.append("text") // text to each small multiple
+    .attr("class", "name-label")
+    .attr("x", (width / 2) + margin.left )
+    .attr("y", 15)
+    .style("text-anchor", "middle")
+    .text(function(d) { return d.key; });
+  
+  // Construct meta plot
+  //metaCumAvgs = metaCumAvgs.filter(function(d) { return d.x < metaNCutoff; });
+  //xMeta.domain([1, d3.max(metaCumAvgs, function(d) { return d.x + 1; }) ]);
+  
+  metaSVG.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(" + metaM.left + "," + (metaH + metaM.top) + ")")
+    .call(xAxisMeta)
+   .append("text")
+    .attr("class", "x meta-label")
+    .style("text-anchor", "middle")
+    .attr("x", metaW / 2)
+    .attr("y", 30)
+    .text("Cumulative number of reviews");
+
+  metaSVG.append("g")
+    .attr("class", "y axis")
+    .attr("transform", "translate(" + metaM.left + "," + metaM.top + ")") 
+    .call(yAxisMeta)
+   .append("text")
+    .attr("class", "y meta-label")
+    .style("text-anchor", "middle")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -(metaH / 2))
+    .attr("y", -(metaM.left / 2))
+    .text("Stars from mean rating");
+
+  metaSVG.append("g")
+    .selectAll(".meta-line")
+    .data(metaCumAvgs)
+   .enter().append("path")
+    .attr("class", "meta-line")
+    .attr("d", metaLine);
+  
+
+  /*
+  metaSVG.append("g")
+    .selectAll(".meta-dot")
+    .data(metaCumAvgs)
+   .enter().append("circle")
+    .attr("class", "meta-dot")
+    .attr("r", 1)
+    .attr("cx", function(d)   { return xMeta(d.x + 1) + metaM.left; })
+    .attr("cy", function(d)   { return yMeta(d.y) + metaM.top; })
+    .attr("fill", function(d) { return d.fill; });
+*/ 
+  metaSVG.append("line")
+    .attr("class", "line zero")
+    .attr("y1", yMeta(0) + metaM.top)
+    .attr("y2", yMeta(0) + metaM.top)
+    .attr("x1", xMeta(0) + metaM.left)
+    .attr("x2", xMeta(metaNCutoff) + metaM.left);
+     
+  metaSVG.append("text")
+    .attr("class", "meta-title")
+    .attr("x", metaW + metaM.left)
+    .attr("y", metaM.top)
+    .style("text-anchor", "end")
+    .text("Meta plot (" + businesses.length + " stores, " + data.length + " reviews)");
+});
+
+function smallMultiple(d, i) { // creates a single small multiple chart
   var g = d3.select(this)
     .append("g");
 
-  x.domain([0,d.values.length]);
   var fill = color(i);
+  if (smNCutoff == null) { 
+    x.domain([0,d.values.length]); 
+  }
   
   // Sort ratings by date, for moving average below
   d.values.sort(function(a,b) {
@@ -94,9 +201,14 @@ function smallMultiple(d, i) {
 
   // Compute the moving average, normalize and add to the global array
   var mvAvg = cumAvg(d.values, function(r) { return r.stars; });
-  mvAvg.forEach( function(d, i) { 
+/*  mvAvg.forEach( function(d, i) { 
     metaCumAvgs.push( { "x": i, "y": (d-avg), "fill": fill } ); 
   } );
+*/
+   
+  metaCumAvgs.push(
+    mvAvg.slice(0, metaNCutoff).map(function(d) { return d-avg; })
+  );
 
   var hist  = d3.layout.histogram()     // compute star counts
     .bins([0,1.01,2.01,3.01,4.01,5.01]) // offset for intuitive binning
@@ -172,93 +284,4 @@ function smallMultiple(d, i) {
     .text("Stars");
 }
 
-d3.json(jsonFile, function(data) { // Load data asynchronously then make chart
-  d3.select("div#loading").remove(); 
- 
-  var metaSVG = d3.select("#vis").append("div") // meta is made after individuals
-    .attr("class", "meta")
-   .append("svg")
-    .attr("width",  metaW + metaM.left + metaM.right)
-    .attr("height", metaH + metaM.top  + metaM.bottom)
-    .attr("transform", "translate(" + metaM.left + "," + metaM.top + ")");
-
-  // Split data by business
-  var businesses = d3.nest()
-    .key(function(d) { return d.name; })
-    .entries(data)
-
-  // Bind data to a <div><svg></svg></div>, by business
-  var divs = d3.select("#vis").append("div")
-    .attr("class", "small-multiple-container")
-    .selectAll(".small-multiple")
-    .data(businesses)
-   .enter().append("div")
-    .attr("class", "small-multiple")
-
-  var svgs = divs.append("svg")
-    .attr("width",  width + margin.left + margin.right)
-    .attr("height", height + margin.top  + margin.bottom)
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-  svgs.each(smallMultiple);
-     
-  // add text label to each small multiple
-  svgs.append("text")
-    .attr("class", "name-label")
-    .attr("x", (width / 2) + margin.left )
-    .attr("y", 15)
-    .style("text-anchor", "middle")
-    .text(function(d) { return d.key; });
-  
-  // Construct meta plot
-  metaCumAvgs = metaCumAvgs.filter(function(d) { return d.x < metaNCutoff; });
-  xMeta.domain([1, d3.max(metaCumAvgs, function(d) { return d.x + 1; }) ]);
-  
-  metaSVG.append("g")
-    .attr("class", "x axis")
-    .attr("transform", "translate(" + metaM.left + "," + (metaH + metaM.top) + ")")
-    .call(xAxisMeta)
-   .append("text")
-    .attr("class", "x meta-label")
-    .style("text-anchor", "middle")
-    .attr("x", metaW / 2)
-    .attr("y", 30)
-    .text("Cumulative number of reviews");
-
-  metaSVG.append("g")
-    .attr("class", "y axis")
-    .attr("transform", "translate(" + metaM.left + "," + metaM.top + ")") 
-    .call(yAxisMeta)
-   .append("text")
-    .attr("class", "y meta-label")
-    .style("text-anchor", "middle")
-    .attr("transform", "rotate(-90)")
-    .attr("x", -(metaH / 2))
-    .attr("y", -(metaM.left / 2))
-    .text("Stars from mean rating");
-
-  metaSVG.append("g")
-    .selectAll(".meta-dot")
-    .data(metaCumAvgs)
-   .enter().append("circle")
-    .attr("class", "meta-dot")
-    .attr("r", 1)
-    .attr("cx", function(d)   { return xMeta(d.x + 1) + metaM.left; })
-    .attr("cy", function(d)   { return yMeta(d.y) + metaM.top; })
-    .attr("fill", function(d) { return d.fill; });
-  
-  metaSVG.append("line")
-    .attr("class", "line avg")
-    .attr("y1", yMeta(0) + metaM.top)
-    .attr("y2", yMeta(0) + metaM.top)
-    .attr("x1", xMeta(0) + metaM.left)
-    .attr("x2", xMeta(metaNCutoff) + metaM.left);
-     
-  metaSVG.append("text")
-    .attr("class", "meta-title")
-    .attr("x", metaW + metaM.left)
-    .attr("y", metaM.top)
-    .style("text-anchor", "end")
-    .text("Meta plot (" + businesses.length + " stores, " + data.length + " reviews)");
-});
 

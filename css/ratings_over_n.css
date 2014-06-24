@@ -4,7 +4,7 @@ body {
 }
 
 #vis {
-  width: 1000px;
+  width: 800px;
   display: inline-block;
   margin-left: auto;
   margin-right: auto;
@@ -17,10 +17,11 @@ body {
   shape-rendering: crispEdges;
 }
 
-.line {
+.line, .meta-line {
   fill: none;
 }
-.avg {
+
+line.zero {
   stroke: red;
   stroke-width: 2px;
 }
@@ -36,6 +37,13 @@ body {
   stroke-dasharray: 4,2;
   stroke: black;
 }
+
+.meta-line {
+  stroke-width: 2px;
+  stroke: black;
+  opacity: 0.4;
+}
+
 .bar {
   /* fill is random */
   stroke: white;
@@ -81,4 +89,7 @@ div.small-multiple {
 
 .meta-dot {
   opacity: 0.9;
+}
+
+.meta-line {
 }
