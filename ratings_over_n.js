@@ -1,9 +1,9 @@
 var jsonFile = "data/filt-500_yelp_academic_dataset_reviews.json";
-//var jsonFile = "data/test_reviews.json";
+//var jsonFile = "data/test_reviews.json"; // only 2 plots
 
 // Helper functions
 var parseDate = d3.time.format("%Y-%m-%d").parse;
-var color = d3.scale.category20();
+var color     = d3.scale.category20();
 
 // Compute cumulative moving average (ref http://bit.ly/1pststH)
 function cumAvg(sortedObjs, accessor) {
@@ -18,22 +18,19 @@ function cumAvg(sortedObjs, accessor) {
         }
       });
 }
-                 
-// Sizes of small multiples
-var margin = { top: 20, right: 20, bottom: 20, left: 20 },
-    width  = 200 - margin.left - margin.right,
+
+// Small multiple parameters 
+var margin = { top: 20, right: 40, bottom: 20, left: 30 },
+    width  = 220 - margin.left - margin.right,
     height = 150 - margin.top  - margin.bottom;
-  
-// x-scale, domain is small-multiple-specific
-var x = d3.scale.linear()
+
+var x = d3.scale.linear() // domain is small-multiple-specific
   .range([0, width]);
 
-// y-scale matched for all small multiples
-var y = d3.scale.linear()
+var y = d3.scale.linear() // yelp = 1-5 stars, always)
   .domain([5,0])
   .range([0,height]);
 
-// xAxis
 var xAxis = d3.svg.axis()
   .scale(x)
   .ticks(2)
@@ -45,6 +42,35 @@ var yAxis = d3.svg.axis()
   .scale(y)
   .orient("left");
 
+// meta plot parameters, domains will fit data
+var metaNCutoff = 300; // n > this value are filtered for the meta plot
+var metaM = { top: 20, right: 50, bottom: 50, left: 50 },
+    metaW = 450 - metaM.left - metaM.right,
+    metaH = 250 - metaM.top  - metaM.bottom;
+
+var xMeta = d3.scale.linear()
+  .range([0,metaW]);
+
+var yMeta = d3.scale.linear()
+  .clamp(true)
+  .domain([-1,1])
+  .range([0,metaH]);
+
+var xAxisMeta = d3.svg.axis()
+  .ticks(5)
+  .tickFormat(d3.format(".0f"))
+  .scale(xMeta)
+  .orient("bottom");
+
+var yAxisMeta = d3.svg.axis()
+  .ticks(2)
+  .tickFormat(d3.format(".0f"))
+  .scale(yMeta)
+  .orient("left");
+
+// for meta plot, each small multiple adds it's cumAvg over increasing n
+var metaCumAvgs = [];
+
 // The moving average line
 var line = d3.svg.line()
   .x(function(d,i) { return x(i) + margin.left; })
@@ -55,7 +81,8 @@ function smallMultiple(d, i) {
   var g = d3.select(this)
     .append("g");
 
-  x.domain([0,d.values.length])
+  x.domain([0,d.values.length]);
+  var fill = color(i);
   
   // Sort ratings by date, for moving average below
   d.values.sort(function(a,b) {
@@ -63,27 +90,30 @@ function smallMultiple(d, i) {
   });
 
   // Compute the average rating
-  var avg   = d3.mean(d.values, function(r) { return r.stars; });
-  console.log(avg);
+  var avg = d3.mean(d.values, function(r) { return r.stars; });
 
-  // Compute the moving average
+  // Compute the moving average, normalize and add to the global array
   var mvAvg = cumAvg(d.values, function(r) { return r.stars; });
+  mvAvg.forEach( function(d, i) { 
+    metaCumAvgs.push( { "x": i, "y": (d-avg), "fill": fill } ); 
+  } );
 
-  // Compute histogram of counts
-  var hist  = d3.layout.histogram()
-    .bins([0,1,2,3,4,5])
+  var hist  = d3.layout.histogram()     // compute star counts
+    .bins([0,1.01,2.01,3.01,4.01,5.01]) // offset for intuitive binning
     .value(function(d) { return d.stars; })
     (d.values);
 
-  // Make the histograms, rotated 90 deg CW from 'normal'
-  var fill = color(i);
-  var bar = g.selectAll(".bar")
+  var bar = g.selectAll(".bar") // histograms rotated 90 deg CW, display n on mouseover
     .data(hist)
    .enter().append("g")
     .attr("class", "bar")
     .attr("fill", fill)
     .attr("transform", 
-          function(d) { return "translate(0," +  y(1 + d.x) + ")"; });
+          function(d) { return "translate(0," +  y(1 + d.x) + ")"; })
+    .on("mouseover", 
+        function(d) { d3.select(this).select("text").style("visibility", "visible") })
+    .on("mouseout", 
+        function(d) { d3.select(this).select("text").style("visibility", "hidden") }) 
   
   var rect = bar.append("rect")
     .attr("x", margin.left)
@@ -91,24 +121,28 @@ function smallMultiple(d, i) {
     .attr("width",  function(d) { return x(d.y + 1);  } ) // +1 for 0 cts
     .attr("height", function(d) { return y(5-d.dx); } );
 
-  // Average rating line
-  g.append("line")
+  var cts = bar.append("text") // display histogram count on mouseover
+    .attr("class", "n-ct")
+    .attr("visibility", "hidden")
+    .attr("x", function(d) { return x(d.y) + margin.left + 5; })
+    .attr("y", function(d) { return y(5-d.dx)/2 + margin.top + 2; })
+    .text(function(d) { return "n=" + d.y; });
+
+  g.append("line") // average rating line
     .attr("class", "line avg")
     .attr("y1", y(avg) + margin.top)
     .attr("y2", y(avg) + margin.top)
     .attr("x1", x(0) + margin.left)
     .attr("x2", x(d.values.length) + margin.left);
 
-  // Average itself
-  g.append("text")
+  g.append("text") // average value itself  
     .attr("class", "avg-val")
     .attr("text-anchor", "start")
-    .attr("x", width + margin.left + 1)
+    .attr("x", width + margin.left + 2)
     .attr("y", y(avg - 0.1) + margin.top)
-    .text( d3.round(avg,1) )
+    .text( d3.round(avg,1) + " avg");
    
-  // Moving average line
-  g.append("path")
+  g.append("path") // moving average line
     .datum(mvAvg)
     .attr("class", "line mvavg")
     .attr("d", line);
@@ -117,29 +151,48 @@ function smallMultiple(d, i) {
   g.append("g")
     .attr("class", "x axis")
     .attr("transform", "translate(" + margin.left + "," + (margin.top + height) + ")")
-    .call(xAxis);
- 
+    .call(xAxis)
+   .append("text")
+    .attr("class", "x label")
+    .attr("x", width)
+    .attr("y", -5)
+    .style("text-anchor", "end")
+    .text("Cumulative n");
+
   g.append("g")
     .attr("class", "y axis")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-    .call(yAxis);
+    .call(yAxis)
+   .append("text")
+    .attr("class", "y label")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -(height / 2))
+    .attr("y", -(margin.left / 1.5))
+    .style("text-anchor", "middle")
+    .text("Stars");
 }
 
-// Load data asynchronously then make chart
-d3.json(jsonFile, function(data) {
-  d3.select("div#loading").remove(); // data is loaded
+d3.json(jsonFile, function(data) { // Load data asynchronously then make chart
+  d3.select("div#loading").remove(); 
+ 
+  var metaSVG = d3.select("#vis").append("div") // meta is made after individuals
+    .attr("class", "meta")
+   .append("svg")
+    .attr("width",  metaW + metaM.left + metaM.right)
+    .attr("height", metaH + metaM.top  + metaM.bottom)
+    .attr("transform", "translate(" + metaM.left + "," + metaM.top + ")");
 
   // Split data by business
   var businesses = d3.nest()
     .key(function(d) { return d.name; })
     .entries(data)
 
-  // Bind business data to an <div><svg></svg></div>, one for each business
-  var divs = d3.select("#vis")
+  // Bind data to a <div><svg></svg></div>, by business
+  var divs = d3.select("#vis").append("div")
+    .attr("class", "small-multiple-container")
     .selectAll(".small-multiple")
     .data(businesses)
-   .enter()
-    .append("div")
+   .enter().append("div")
     .attr("class", "small-multiple")
 
   var svgs = divs.append("svg")
@@ -149,13 +202,63 @@ d3.json(jsonFile, function(data) {
 
   svgs.each(smallMultiple);
      
-   
+  // add text label to each small multiple
   svgs.append("text")
     .attr("class", "name-label")
-    .attr("x", width )
-    .attr("y", 10)
-    .style("text-anchor", "end")
+    .attr("x", (width / 2) + margin.left )
+    .attr("y", 15)
+    .style("text-anchor", "middle")
     .text(function(d) { return d.key; });
   
+  // Construct meta plot
+  metaCumAvgs = metaCumAvgs.filter(function(d) { return d.x < metaNCutoff; });
+  xMeta.domain([1, d3.max(metaCumAvgs, function(d) { return d.x + 1; }) ]);
+  
+  metaSVG.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(" + metaM.left + "," + (metaH + metaM.top) + ")")
+    .call(xAxisMeta)
+   .append("text")
+    .attr("class", "x meta-label")
+    .style("text-anchor", "middle")
+    .attr("x", metaW / 2)
+    .attr("y", 30)
+    .text("Cumulative number of reviews");
+
+  metaSVG.append("g")
+    .attr("class", "y axis")
+    .attr("transform", "translate(" + metaM.left + "," + metaM.top + ")") 
+    .call(yAxisMeta)
+   .append("text")
+    .attr("class", "y meta-label")
+    .style("text-anchor", "middle")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -(metaH / 2))
+    .attr("y", -(metaM.left / 2))
+    .text("Stars from mean rating");
+
+  metaSVG.append("g")
+    .selectAll(".meta-dot")
+    .data(metaCumAvgs)
+   .enter().append("circle")
+    .attr("class", "meta-dot")
+    .attr("r", 1)
+    .attr("cx", function(d)   { return xMeta(d.x + 1) + metaM.left; })
+    .attr("cy", function(d)   { return yMeta(d.y) + metaM.top; })
+    .attr("fill", function(d) { return d.fill; });
+  
+  metaSVG.append("line")
+    .attr("class", "line avg")
+    .attr("y1", yMeta(0) + metaM.top)
+    .attr("y2", yMeta(0) + metaM.top)
+    .attr("x1", xMeta(0) + metaM.left)
+    .attr("x2", xMeta(metaNCutoff) + metaM.left);
+     
+  metaSVG.append("text")
+    .attr("class", "meta-title")
+    .attr("x", metaW + metaM.left)
+    .attr("y", metaM.top)
+    .style("text-anchor", "end")
+    .text("Meta plot (" + businesses.length + " stores, " + data.length + " reviews)");
 });
 
