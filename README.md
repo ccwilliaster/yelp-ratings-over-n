@@ -16,3 +16,5 @@ Each line in the meta plot represents a single business and illustrates how its 
 
 
 In general, the ratings stabilize with more reviews but it's rare that an average review is ever more than one star away from the eventual **stabilized** rating. The data also show that initial reviews are slightly skewed toward higher ratings compared to the **stabilized** rating.
+
+![preview](preview.png?raw=true "Preview")
