@@ -1,10 +1,10 @@
 body {
-  font: 11px sans-serif;
+  font: 12px sans-serif;
   color: red;
 }
 
 #vis {
-  width: 800px;
+  width: 900px;
   display: inline-block;
   margin-left: auto;
   margin-right: auto;
@@ -17,11 +17,11 @@ body {
   shape-rendering: crispEdges;
 }
 
-.line, .meta-line {
+.line, .norm-avg {
   fill: none;
 }
 
-line.zero {
+line.zero, .avg {
   stroke: red;
   stroke-width: 2px;
 }
@@ -38,7 +38,7 @@ line.zero {
   stroke: black;
 }
 
-.meta-line {
+.norm-avg {
   stroke-width: 2px;
   stroke: black;
   opacity: 0.4;
@@ -71,6 +71,7 @@ div.small-multiple {
 }
 
 .small-multiple-container,
+.slider-container,
 .meta {
   text-align: center;
   margin-left: auto;
@@ -79,7 +80,7 @@ div.small-multiple {
 
 .meta-label {
   font-weight: bold;
-  size: 13px;
+  size: 15px;
   fill: red;
 }
 
@@ -87,9 +88,14 @@ div.small-multiple {
   font-weight: bold;
 }
 
-.meta-dot {
-  opacity: 0.9;
+.axis .slide-scale {
+  fill: none;
+  stroke: #DDD;
+  stroke-width: 3px;
+  stroke-linecap: round;
 }
 
-.meta-line {
+.slider .handle {
+  fill: #EEE;
+  stroke: #000;
 }
