@@ -5,13 +5,16 @@ info="""This program filters yelp academic dataset review json objects based
         one for review type objects.
 
         Additionally, when filtering reviews, it converts the business ID
-        to a business name
+        to a business name. If the scramble option is specified, the name is
+        scrambled
      """
 
 __author__ = "ccwilliams"
 __date__   = "2014-06-19"
 
+import os
 import re
+import random
 import argparse
 
 RE_BUSINESS_ID   = '"business_id": "(.*?)"' # *? = NOT greedy
@@ -29,16 +32,22 @@ prsr.add_argument("reviews",
 prsr.add_argument("-n", type=int, default=20,
                   help="The minimum number of reviews a business must have"\
                        "for their reviews not to be filtered")
-
+prsr.add_argument("-s", "--scramble", action="store_true",
+                  help="If this option is specified, business names will be "\
+                       "scrambled")
 # TODO: add option to log actual #reviews/business ascending to see min cts
 
 #...............................................................................
 def main():
-    valid_businesses = {}
-
+    os.chdir( os.getcwd() )
+    valid_businesses  = {}
+    business_scramble = {} # for consistent name scrambling if option specified
+    outname = "filt-%i%s_%s" % \
+        (args.n, "_name-scramble" if args.scramble else "", args.reviews)
+        
     f_businesses  = open(args.businesses, "r")
     f_reviews     = open(args.reviews,    "r")
-    f_reviews_out = open("filt-%i_%s" % (args.n, args.reviews), "w")
+    f_reviews_out = open(outname,         "w")
 
     # collect valid businesses
     ct_businesses = 0
@@ -62,11 +71,23 @@ def main():
     for review in f_reviews.readlines():
         review_ct_total += 1
         business_id = re.findall(RE_BUSINESS_ID, review)
+
         if len(business_id) > 0 and business_id[0] in valid_businesses:
+
             review_min  = ",\n" if review_ct_written > 0 else ""
+            business    = valid_businesses[ business_id[0] ]
+           
+            if args.scramble: # must map consistently to the scrambled name
+                if business in business_scramble:
+                    business = business_scramble[business]
+                else:
+                    not_scrambled = business
+                    business = re.sub("[,' ]", "", business.lower())
+                    business = "".join( random.sample(business, len(business)) )
+                    business_scramble[ not_scrambled ] = business
+
             review_min += '{ %s, "name": "%s" }' % \
-                    ( re.findall(RE_REVIEW_FILT, review)[0], 
-                      valid_businesses[ business_id[0] ] )
+                    ( re.findall(RE_REVIEW_FILT, review)[0], business )
 
             f_reviews_out.write(review_min)
             review_ct_written += 1

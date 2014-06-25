@@ -3,11 +3,32 @@ body {
   color: red;
 }
 
-#vis {
+#vis, #header-container {
   width: 900px;
   display: inline-block;
   margin-left: auto;
   margin-right: auto;
+}
+
+#logo {
+  max-width:  100px; /* scale proportionally */
+  max-height: 100px;
+  width:  auto;
+  height: auto;
+  margin: auto;
+  display: block;
+}
+
+#header {
+  width: 600px;
+  padding: 20px;
+  font-size: 12px;
+  color: black;
+  margin-left: auto;
+  margin-right: auto;
+}
+.emph {
+  font-weight: bold;
 }
 
 .axis path,
@@ -36,12 +57,14 @@ line.zero, .avg {
   stroke-width: 2px;
   stroke-dasharray: 4,2;
   stroke: black;
+  shape-rendering: crispEdges;
 }
 
 .norm-avg {
-  stroke-width: 2px;
+  cursor: pointer;
+  stroke-width: 1.5px;
   stroke: black;
-  opacity: 0.4;
+  opacity: 0.6;
 }
 
 .bar {
@@ -56,13 +79,12 @@ line.zero, .avg {
 div.small-multiple {
   display: inline-block;
   background-color: #EEE;
-  border: 1px solid red;
   margin: 10px;
 }
 
-.name-label {
-  font-weight: bold;
+text.business-name {
   fill: red;
+  font-weight: bold;
 }
 
 .n-ct {
@@ -78,9 +100,8 @@ div.small-multiple {
   margin-right: auto;
 }
 
-.meta-label {
-  font-weight: bold;
-  size: 15px;
+.meta .label {
+  font-size: 15px;
   fill: red;
 }
 
@@ -88,14 +109,29 @@ div.small-multiple {
   font-weight: bold;
 }
 
-.axis .slide-scale {
+.small-multiple text.x.label,
+.small-multiple text.y.label{
+  font-weight: normal;
+}
+
+.axis .slide {
   fill: none;
   stroke: #DDD;
   stroke-width: 3px;
   stroke-linecap: round;
 }
 
-.slider .handle {
+.sliderHandle {
   fill: #EEE;
-  stroke: #000;
+  stroke: red;
+  cursor: pointer;
+}
+
+.slider {
+  cursor: pointer;
+}
+
+.meta .title {
+  font-size: 15px;
+  fill: red;
 }

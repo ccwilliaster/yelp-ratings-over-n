@@ -3,14 +3,35 @@
     <head>
         <meta charset="utf-8">
         <title>Yelp n versus ratings</title>
-        <script type="text/javascript" src="d3/d3.v3.js"></script>
+        <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
         <link rel="stylesheet" type="text/css" href="css/ratings_over_n.css">
         <style>
         </style>
     </head>
     <body>
         <script type="text/javascript" src="ratings_over_n.js"></script>
-        <h2>Yelp ratings as review number increases</h2>
+        <h2>Yelp! ratings as review number increases</h2>
+        <div id="header-container">
+          <div id="header">
+            <img id="logo" src="data/yelp_logo.jpg" alt="Yelp!" />
+            <br/><br/>
+            I was interested in the number of Yelp reviews necessary before an average rating
+            accurately reflects the <span class="emph">stabilized </span> average rating. Using Yelp's
+            <a href="https://www.yelp.com/academic_dataset">academic dataset</a> I filtered for businesses
+            which had <span class="emph">&gt;500 reviews</span> and looked at 
+            cumulative averages as review counts increased. 
+            <br/><br/>
+            Each line in the meta plot represents a single business and illustrates how its rating has
+            changed as a function of reviews, compared to the eventual <span class="emph">stabilized</span> rating.
+            Hover over a line for summary information and a link to that business's histogram. The slider below 
+            the plot controls the upper limit for number of reviews.
+            <br/><br/>
+            In general, the ratings stabilize with more reviews but it's rare that an average review is ever
+            more than one star away from the eventual <span class="emph">stabilized</span> rating. The 
+            data also show that initial reviews are slightly skewed toward higher ratings compared to the 
+            <span class="emph">stabilized</span> rating.
+          </div>
+        </div>
         <div id="loading">[ Loading... ]</div>
         <div id="vis"></div>
     </body>
