@@ -8,7 +8,8 @@
 var sliderHandle, sliderContainer, metaSVG, metaXMax, nBusinesses, nReviews;
 var metaCumAvgs = []; // small multiples modify
 //var jsonFile = "data/filt-500_yelp_academic_dataset_reviews.json";
-var jsonFile = "data/test_reviews.json"; // only 2 plots
+var jsonFile = "data/filt-500-n-inf_yelp_academic_dataset_reviews.json";
+//var jsonFile = "data/test_reviews.json"; // only 2 plots
 
 //.............................................................................
 // Helper functions
@@ -242,15 +243,14 @@ function makeMeta() { // constructs meta/normalized cum. average plot and slider
     .attr("x1", xMeta(0) + metaM.left)
     .attr("x2", xMeta(metaXMax) + metaM.left);
      
-  metaSVG.append("text") // 
+  metaSVG.append("text") // meta label
     .attr("class", "meta label title")
     .attr("x", metaW + metaM.left)
     .attr("y", 2*metaM.top)
     .style("text-anchor", "end")
     .text("Meta plot (" + nBusinesses + " businesses, " + nReviews + " reviews)");
 
-  // add slider to update the meta x domain
-  var sliderAxis = sliderContainer.append("g")
+  var sliderAxis = sliderContainer.append("g") // slider for x domain
     .attr("class", "slide x axis")
     .attr("transform", "translate(" + metaM.left + "," + brushH / 3 + ")")
     .call(
