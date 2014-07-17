@@ -140,6 +140,8 @@ def main():
     stop = dt.datetime.now() 
     print "Done in %.fs" % (stop -start).seconds
 
+#...............................................................................
+# tests
 def test_all():
     test_filt_businesses()
     test_filt_reviews()
@@ -153,6 +155,7 @@ def setup_businesses():
     return biz
 
 def setup_reviews():
+    # empty key is to ensure it is not in new dictionary
     rev = [ { "business_id":1, "empty_key":"", "date":1, "stars": 1 },
             { "business_id":2, "empty_key":"", "date":2, "stars": 2 },
             { "business_id":3, "empty_key":"", "date":3, "stars": 3} ]

@@ -6,8 +6,7 @@
 
 // shared variables
 var sliderHandle, sliderContainer, metaSVG, metaXMax, nBusinesses, nReviews;
-var metaCumAvgs = []; // small multiples modify
-//var jsonFile = "data/filt-500_yelp_academic_dataset_reviews.json";
+var metaCumAvgs = []; // small multiples function populates with normalized data
 var jsonFile = "data/filt-500-n-inf_yelp_academic_dataset_reviews.json";
 //var jsonFile = "data/test_reviews.json"; // only 2 plots
 
@@ -32,13 +31,14 @@ function cumAvg(sortedObjs, accessor) {
 
 // Brush listener to change axis in meta plot
 function brushed() {
-  var value = brush.extent()[0];
+  var value = brush.extent()[0]; // min and max are equal when brush is slider
 
-  if (d3.event.sourceEvent) { // not a programmatic event
+  if (d3.event.sourceEvent) { // if this is a mouse click / not programmatic
     var value = xBrush.invert( d3.mouse(this)[0] );
     brush.extent([value, value]);
   }
 
+  // Update slider position, then update x axis and actual meta lines
   sliderHandle.attr("cx", xBrush(value));
   xMeta.domain([0, value]);
 
@@ -47,7 +47,7 @@ function brushed() {
     .attr("d", function(d) { return metaLine(d.normavg); });
 }
 
-// move lines to the front on meta hover
+// move lines to the front on meta hover for emphasis
 d3.selection.prototype.moveToFront = function() {
   return this.each(function() {
     this.parentNode.appendChild(this); 
@@ -65,7 +65,7 @@ var x = d3.scale.linear() // domain is small-multiple-specific
   .clamp(true)
   .range([0, width]);
 
-var y = d3.scale.linear() // yelp = 1-5 stars, always)
+var y = d3.scale.linear() // yelp = 0-5 stars, always
   .domain([5,0])
   .range([0,height]);
 
@@ -120,62 +120,16 @@ var metaLine = d3.svg.line() // meta plot line
 // will function as a slider, ala http://bl.ocks.org/mbostock/6452972
 var brushH = 40;
 var xBrush = d3.scale.linear()
-  .clamp(true)
+  .clamp(true) // else can go out of bounds
   .range([0,metaW]);
   
 var brush = d3.svg.brush() 
   .x(xBrush)
-  .extent([0,0])
+  .extent([0,0]) // start at 0; nb: extent 
   .on("brush", brushed);
 
 //.............................................................................
-// load data asynchronously then make charts
-d3.json(jsonFile, function(data) { 
-  d3.select("div#loading").remove(); 
- 
-  // split data by business
-  var businesses = d3.nest()
-    .key(function(d) { return d.name; })
-    .entries(data);
- 
-  metaSVG = d3.select("#vis").append("div") // meta is made after individuals
-    .attr("class", "meta")
-   .append("svg")
-    .attr("width",  metaW + metaM.left + metaM.right)
-    .attr("height", metaH + metaM.top  + metaM.bottom)
-    .attr("transform", "translate(" + metaM.left + "," + metaM.top + ")");
-
-  sliderContainer = d3.select("#vis").append("div")
-    .attr("class", "slider-container")
-   .append("svg")
-    .attr("width",  metaW + metaM.left + metaM.right)
-    .attr("height", brushH)
-    .attr("transform", "translate(" + metaM.left + ",0)");
- 
-  var divs = d3.select("#vis").append("div") // 1 small multiple per business
-    .attr("class", "small-multiple-container")
-    .selectAll(".small-multiple")
-    .data(businesses)
-   .enter().append("div")
-    .attr("class", "small-multiple")
-    .attr("id", function(d,i) { return "multiple" + i; });
-
-  var svgs = divs.append("svg")
-    .attr("width",  width + margin.left + margin.right)
-    .attr("height", height + margin.top  + margin.bottom)
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-  // update shared vars
-  metaXMax = d3.max(businesses, function(d) { return d.values.length; }); 
-  xMeta.domain([0, metaXMax]); // set domains
-  xBrush.domain([0,metaXMax]);
-  nBusinesses = businesses.length;
-  nReviews    = data.length;
- 
-  svgs.each(smallMultiple);
-  makeMeta(); // depends on data parsing in small multiples
-});
-
+// Chart functions
 function makeMeta() { // constructs meta/normalized cum. average plot and slider
 
   // First make meta plot, then slider
@@ -271,7 +225,7 @@ function makeMeta() { // constructs meta/normalized cum. average plot and slider
     .selectAll(".extent,.resize")
     .remove();
 
-  slider.select(".background")
+  slider.select(".background") // sliders have this attr by default
     .attr("height", brushH)
 
   sliderHandle = slider.append("circle")
@@ -412,4 +366,51 @@ function smallMultiple(d, i) { // creates a single small multiple chart
     .text("Stars");
 }
 
+//.............................................................................
+// load data asynchronously then make charts
+d3.json(jsonFile, function(data) { 
+  d3.select("div#loading").remove(); 
+ 
+  // split data by business
+  var businesses = d3.nest()
+    .key(function(d) { return d.name; })
+    .entries(data);
+ 
+  metaSVG = d3.select("#vis").append("div") // meta is made after individuals
+    .attr("class", "meta")
+   .append("svg")
+    .attr("width",  metaW + metaM.left + metaM.right)
+    .attr("height", metaH + metaM.top  + metaM.bottom)
+    .attr("transform", "translate(" + metaM.left + "," + metaM.top + ")");
+
+  sliderContainer = d3.select("#vis").append("div")
+    .attr("class", "slider-container")
+   .append("svg")
+    .attr("width",  metaW + metaM.left + metaM.right)
+    .attr("height", brushH)
+    .attr("transform", "translate(" + metaM.left + ",0)");
+ 
+  var divs = d3.select("#vis").append("div") // 1 small multiple per business
+    .attr("class", "small-multiple-container")
+    .selectAll(".small-multiple")
+    .data(businesses)
+   .enter().append("div")
+    .attr("class", "small-multiple")
+    .attr("id", function(d,i) { return "multiple" + i; });
+
+  var svgs = divs.append("svg")
+    .attr("width",  width + margin.left + margin.right)
+    .attr("height", height + margin.top  + margin.bottom)
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  // update shared vars
+  metaXMax = d3.max(businesses, function(d) { return d.values.length; }); 
+  xMeta.domain([0, metaXMax]); // set domains
+  xBrush.domain([0,metaXMax]);
+  nBusinesses = businesses.length;
+  nReviews    = data.length;
+ 
+  svgs.each(smallMultiple);
+  makeMeta(); // depends on data parsing in small multiples
+});
 
