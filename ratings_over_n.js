@@ -64,7 +64,7 @@ var margin = { top: 25, right: 45, bottom: 20, left: 35 },
 var x = d3.scale.linear() // domain is small-multiple-specific
   .clamp(true)
   .range([0, width]);
-
+  
 var y = d3.scale.linear() // yelp = 0-5 stars, always
   .domain([5,0])
   .range([0,height]);

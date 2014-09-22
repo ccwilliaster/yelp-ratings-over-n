@@ -37,7 +37,8 @@ prsr.add_argument("-s", "--scramble", action="store_true",
                   help="If this option is specified, business names will be "\
                        "scrambled")
 prsr.add_argument("-t", "--tests_only", action="store_true",
-                  help="If this option is specified, only unit tests executed")
+                  help="If this option is specified, only unit tests are "\
+                       "executed")
 
 #...............................................................................
 # Helper functions
